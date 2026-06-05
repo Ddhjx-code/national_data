@@ -558,12 +558,12 @@ export class NewStatsApiClient {
       rootId: params.rootId || this.rootId,
     };
     
-    console.error(`Data Request: ${this.baseUrl}/getEsDataByCidAndDt`);
+    console.error(`Data Request: ${this.baseUrl}/stream/esData`);
     console.error(`Payload:`, JSON.stringify(payload, null, 2));
-    
+
     try {
       const response = await axios.post<DataResponse>(
-        `${this.baseUrl}/getEsDataByCidAndDt`,
+        `${this.baseUrl}/stream/esData`,
         payload,
         {
           timeout: this.timeout,

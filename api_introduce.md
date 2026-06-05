@@ -43,7 +43,7 @@
 
 ### 3. 时间编码格式
 
-在 `getEsDataByCidAndDt` 接口中使用：
+在 `stream/esData` 接口中使用：
 
 *   **月度**: `YYYYMM` (如 `202602`)，后缀 `MM` (如 `202602MM`)
 *   **季度**: `YYYYQ` (如 `20254` 表示第四季度)，后缀 `SS` (如 `202504SS`，注意这里 Q4 可能编码为 04)
@@ -58,7 +58,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **1. 遍历目录** | `/new/queryIndexTreeAsync` | GET | 获取分类树，找到目标数据集 (`cid`) | `pid`, `code` |
 | **2. 获取指标** | `/new/queryIndicatorsByCid` | GET | 获取某数据集下的所有指标列表 (`indicatorId`) | `cid` |
-| **3. 查询数据** | `/getEsDataByCidAndDt` | POST | 批量获取具体数值 | `cid`, `indicatorIds`, `dts`, `das` |
+| **3. 查询数据** | `/stream/esData` | POST | 批量获取具体数值 | `cid`, `indicatorIds`, `dts`, `das`, `showType` |
 | *(可选)* | `/external/query` | GET | 关键词搜索，快速定位 `cid` | `search`, `pagenum` |
 
 ---
@@ -159,7 +159,7 @@ GET /new/queryIndicatorsByCid?cid={catalog_id}&dt=&name=
 **核心接口**。支持批量查询多个指标、多个时间点的数据。
 
 ```http
-POST /getEsDataByCidAndDt
+POST /stream/esData
 Content-Type: application/json
 ```
 
@@ -192,6 +192,7 @@ Content-Type: application/json
 | `indicatorIds` | array | 指标 ID 数组 (来自步骤 2) |
 | `das` | array | 地区维度。`value`: `000000000000` 代表全国。如果是分省数据，需传入具体省份代码。 |
 | `dts` | array | 时间范围数组。格式 `Start-End`。 |
+| `showType` | string | 显示类型，固定传 `"1"` |
 | `rootId` | string | 根节点 ID。通常固定为月度数据的根 ID，可通过第一次树请求获取。 |
 
 **响应结构**
@@ -222,7 +223,9 @@ Content-Type: application/json
       "values": [ ... ]
     }
   ],
-  "success": true
+  "success": true,
+  "state": 20000,
+  "message": "成功"
 }
 ```
 
@@ -279,13 +282,14 @@ curl "https://data.stats.gov.cn/dg/website/publicrelease/web/external/new/queryI
 **Step 3: 查询数据**
 
 ```bash
-curl -X POST "https://data.stats.gov.cn/dg/website/publicrelease/web/external/getEsDataByCidAndDt" \
+curl -X POST "https://data.stats.gov.cn/dg/website/publicrelease/web/external/stream/esData" \
 -H "Content-Type: application/json" \
 -d '{
   "cid": "5c7452825c7c4dcba391db5ca7f335c5",
   "indicatorIds": ["53180dfb9c14411ba4b762307c85920c"],
   "das": [{"text": "全国", "value": "000000000000"}],
   "dts": ["202601MM-202603MM"],
+  "showType": "1",
   "rootId": "fc982599aa684be7969d7b90b1bd0e84"
 }'
 ```
@@ -364,11 +368,11 @@ def get_tree(pid="", code="1"):
 
 *   **树结构 (`queryIndexTreeAsync`)**: 变化极慢，建议本地缓存 24 小时以上。
 *   **指标列表 (`queryIndicatorsByCid`)**: 变化较慢，建议按 `cid` 缓存。
-*   **数据 (`getEsDataByCidAndDt`)**: 每月更新，建议设置较短缓存或按需请求。
+*   **数据 (`stream/esData`)**: 每月更新，建议设置较短缓存或按需请求。
 
 ### 4. 批量请求减少 IO
 
-`getEsDataByCidAndDt` 支持 `indicatorIds` 数组。
+`stream/esData` 支持 `indicatorIds` 数组。
 *   ❌ **错误**: 循环调用接口，每次查 1 个指标。
 *   ✅ **正确**: 一次性传入该 `cid` 下所有需要的指标 ID（如 CPI 的总指数、食品、居住等 10 个子类），一次请求拿回所有数据。
 
@@ -426,7 +430,7 @@ class NbsNewClient {
       rootId: this.rootId
     };
 
-    const res = await fetch(`${this.base}/getEsDataByCidAndDt`, {
+    const res = await fetch(`${this.base}/stream/esData`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -477,5 +481,5 @@ main();
 | 关键词找数据集 | `GET /query` | `search`, `pagenum` |
 | 浏览分类体系 | `GET /new/queryIndexTreeAsync` | `pid`, `code` |
 | 拿指标 ID | `GET /new/queryIndicatorsByCid` | `cid` |
-| 查历史时间序列 | `POST /getEsDataByCidAndDt` | `cid`, `indicatorIds`, `dts` |
+| 查历史时间序列 | `POST /stream/esData` | `cid`, `indicatorIds`, `dts`, `showType` |
 | 获取根节点 ID | `GET /new/queryIndexTreeAsync?pid=` | `pid` (空) |

@@ -103,7 +103,7 @@ export interface DataValue {
 }
 
 /**
- * 数据点 - 来自 getEsDataByCidAndDt
+ * 数据点 - 来自 stream/esData
  */
 export interface DataPoint {
   code: string;             // 时间编码 (如 "202602MM")
@@ -117,6 +117,8 @@ export interface DataPoint {
 export interface DataResponse {
   data: DataPoint[];
   success: boolean;
+  state?: number;
+  message?: string;
 }
 
 /**

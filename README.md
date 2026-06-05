@@ -187,7 +187,7 @@ enum CategoryCode {
 - 搜索接口 `/external/query` 用于关键词搜索和快速定位cid
 - 树遍历接口 `/new/queryIndexTreeAsync` 用于浏览分类树和获取cid
 - 指标查询接口 `/new/queryIndicatorsByCid` 用于获取指标列表
-- 数据查询接口 `/getEsDataByCidAndDt` 用于批量获取时间序列数据
+- 数据查询接口 `/stream/esData` 用于批量获取时间序列数据
 - 内置缓存机制：树结构24小时，指标列表12小时
 - UUID标识符系统和时间分片机制
 - 完整的错误处理和重试逻辑
