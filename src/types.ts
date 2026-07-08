@@ -138,9 +138,12 @@ export interface DataQueryParams {
  */
 export interface SearchItem {
   show_name: string;        // 显示名称
-  type_text: string;        // 数据类型 (如 "月度数据")
+  type_text: string;        // 数据类型 (如 "月度数据", "分省年度数据")
+  type_value?: string;      // 数据类型代码 (1=月度, 2=季度, 3=年度, 5=分省季度, 6=分省年度, 8=城市年度)
   treeinfo_globalid?: string; // 全局路径ID
   cid?: string;             // 数据集ID
+  da?: string;              // 地区代码 (000000000000=全国, 110000000000=北京, ...)
+  da_name?: string;         // 地区名称 (如 "全国", "北京市", "广东省")
   sdate?: string;           // 起始时间
   edate?: string;           // 结束时间
 }

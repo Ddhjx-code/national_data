@@ -107,7 +107,7 @@ export const server = new McpServer({
     - browse_tree: 浏览指标分类树，支持月度/季度/年度/分省数据
     - get_indicators: 根据cid获取可用指标列表
     - get_data: 获取具体统计数据（支持全国/分省/指定省份）
-    - search_and_get: 一步到位：搜索 + 获取数据
+    - search_and_get: 一步到位：搜索 + 获取数据（适合全国数据的简单查询）
 
     使用流程：
     1. 用 search_statistics 搜索关键词找到 cid
@@ -115,8 +115,31 @@ export const server = new McpServer({
     3. 用 get_data 传入 cid、indicatorIds、时间范围和地区获取数据
 
     快捷方式：
-    - search_and_get 可以一步完成上述流程（适合简单查询）
+    - search_and_get 可以一步完成上述流程（适合全国数据的简单查询）
     - browse_tree 可以浏览完整的分类体系
+
+    =====================
+    分省数据获取方法（重要）
+    =====================
+
+    搜索接口有一个隐藏逻辑：搜索关键词中必须包含具体省份名，才能触发分省数据的搜索结果。
+
+    获取分省数据的正确流程：
+    1. 搜索时在关键词前加一个省份名，如 "北京gdp"、"广东省CPI"
+       - 搜 "GDP" → 只返回全国数据
+       - 搜 "北京gdp" → 返回分省年度数据（type_value=6）
+    2. 从搜索结果中筛选 type_value="6"（分省年度）或 "5"（分省季度）的项，获取 cid
+    3. 用 get_data 传入该 cid + region="31省"，即可一次获取全部31省数据
+
+    注意事项：
+    - cid 是跨省通用的：通过"北京gdp"搜到的 cid，配合31省 das 可以返回所有省份数据
+    - code 参数是后置过滤器：只筛选已命中的结果类型，不改变搜索逻辑
+    - search_and_get 不适合分省查询，请使用 search_statistics + get_data 组合
+
+    示例：获取2025年31省GDP
+    1. search_statistics(keyword="北京gdp") → 找到 type_value=6 的结果，cid=6f8fbd...
+    2. get_data(cid="6f8fbd...", indicatorIds=[...], dts="2025YY-2025YY", region="31省")
+    =====================
 
     地区参数说明（region）：
     - "全国" 或不传: 查全国数据
@@ -136,6 +159,11 @@ export const server = new McpServer({
     - 5: 分省季度数据
     - 6: 分省年度数据
     - 7: 其他/普查数据
+
+    搜索结果字段说明：
+    - type_value: 数据类型代码（1=月度, 2=季度, 3=年度, 5=分省季度, 6=分省年度, 8=城市年度）
+    - da: 地区代码（000000000000=全国, 110000000000=北京, 440000000000=广东...）
+    - da_name: 地区名称
   `;
 
 // ====== 工具1: 搜索数据集 ======
@@ -161,8 +189,11 @@ server.tool(
               results: results.map(r => ({
                 name: r.show_name,
                 type: r.type_text,
+                type_value: r.type_value || null,
                 cid: r.cid || null,
                 globalid: r.treeinfo_globalid,
+                da: r.da || null,
+                da_name: r.da_name || null,
                 timeRange: r.sdate && r.edate ? `${r.sdate} - ${r.edate}` : null,
               }))
             }, null, 2)
