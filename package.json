@@ -1,6 +1,6 @@
 {
   "name": "national-stats-mcp",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "MCP server for accessing National Bureau of Statistics data (supports both new V2.0 and legacy API)",
   "main": "dist/index.js",
   "bin": {
